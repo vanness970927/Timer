@@ -2,16 +2,65 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>比賽專業計時器</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>專業比賽計時器</title>
     <style>
-        body { font-family: -apple-system, sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; background-color: #121212; color: white; margin: 0; overflow: hidden; }
-        #timer { font-size: 160px; font-weight: 800; font-family: 'Courier New', monospace; color: #00ff88; margin: 20px 0; }
-        #status { font-size: 32px; color: #ffcc00; font-weight: bold; height: 45px; letter-spacing: 2px; }
-        button { padding: 20px 60px; font-size: 28px; cursor: pointer; border-radius: 50px; border: none; background: linear-gradient(145deg, #007bff, #0056b3); color: white; box-shadow: 0 5px 20px rgba(0,0,0,0.5); transition: 0.2s; font-weight: bold; }
-        button:hover { transform: scale(1.05); }
-        button:disabled { background: #444; opacity: 0.6; transform: none; }
-        .prep { color: #ff4444 !important; } /* 預備時的顏色 */
+        body { 
+            font-family: -apple-system, sans-serif; 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            justify-content: center; 
+            height: 100vh; 
+            background-color: #121212; 
+            color: white; 
+            margin: 0; 
+            overflow: hidden;
+            touch-action: manipulation;
+        }
+        
+        #status { 
+            font-size: 6vw; /* 隨螢幕寬度縮放 */
+            color: #ffcc00; 
+            font-weight: bold; 
+            height: 8vw; 
+            letter-spacing: 2px;
+            margin-bottom: 10px;
+        }
+
+        #timer { 
+            font-size: 28vw; /* 核心調整：讓數字完美契合螢幕寬度 */
+            font-weight: 800; 
+            font-family: 'Courier New', monospace; 
+            color: #00ff88; 
+            line-height: 1;
+            margin: 10px 0;
+        }
+
+        button { 
+            padding: 4vw 10vw; 
+            font-size: 6vw; 
+            cursor: pointer; 
+            border-radius: 50px; 
+            border: none; 
+            background: linear-gradient(145deg, #007bff, #0056b3); 
+            color: white; 
+            box-shadow: 0 5px 20px rgba(0,0,0,0.5); 
+            transition: 0.2s; 
+            font-weight: bold;
+            margin-top: 20px;
+        }
+
+        button:active { transform: scale(0.95); }
+        button:disabled { background: #444; opacity: 0.6; }
+        .prep { color: #ff4444 !important; }
+
+        /* 針對橫向螢幕的小調整 */
+        @media (orientation: landscape) {
+            #timer { font-size: 20vh; }
+            #status { font-size: 5vh; }
+            button { font-size: 5vh; padding: 2vh 8vh; }
+        }
     </style>
 </head>
 <body>
@@ -27,13 +76,71 @@
         const statusDisplay = document.getElementById('status');
         const startBtn = document.getElementById('startBtn');
 
-        // 語音設定：語速加快到 1.4
         function speak(text, callback) {
             const msg = new SpeechSynthesisUtterance(text);
             msg.lang = 'zh-TW';
             msg.rate = 1.4; 
             if (callback) msg.onend = callback;
             window.speechSynthesis.speak(msg);
+        }
+
+        function formatTime(seconds) {
+            const m = Math.floor(seconds / 60);
+            const s = seconds % 60;
+            return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+        }
+
+        function preCountdown() {
+            startBtn.disabled = true;
+            let prepTime = 10;
+            statusDisplay.textContent = "預備倒數中...";
+            statusDisplay.classList.add('prep');
+            
+            const prepInterval = setInterval(() => {
+                timerDisplay.textContent = prepTime.toString().padStart(2, '0');
+                if (prepTime === 0) {
+                    clearInterval(prepInterval);
+                    announceStart();
+                }
+                prepTime--;
+            }, 1000);
+        }
+
+        function announceStart() {
+            statusDisplay.textContent = "語音宣告中...";
+            timerDisplay.textContent = "05:00";
+            speak("比賽計時五分鐘，計時開始", function() {
+                startMainTimer();
+            });
+        }
+
+        function startMainTimer() {
+            timeLeft = 300;
+            statusDisplay.textContent = "比賽進行中";
+            statusDisplay.classList.remove('prep');
+            statusDisplay.style.color = "#00ff88";
+
+            timerInterval = setInterval(() => {
+                timeLeft--;
+                timerDisplay.textContent = formatTime(timeLeft);
+
+                if (timeLeft === 180) speak("剩餘三分鐘");
+                if (timeLeft === 60) speak("剩餘一分鐘");
+                if (timeLeft === 30) speak("剩餘三十秒");
+                if (timeLeft <= 10 && timeLeft > 0) speak(timeLeft.toString());
+                
+                if (timeLeft === 0) {
+                    speak("比賽結束");
+                    clearInterval(timerInterval);
+                    statusDisplay.textContent = "FINISH";
+                    statusDisplay.style.color = "#ff4444";
+                    startBtn.disabled = false;
+                }
+            }, 1000);
+        }
+    </script>
+</body>
+</html>
         }
 
         function formatTime(seconds) {
